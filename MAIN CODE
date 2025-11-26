@@ -1,0 +1,112 @@
+main.py
+
+import discord
+from discord.ext import commands
+import random
+import os
+import asyncio
+import google.generativeai as genai
+# Bot prefix'i (örnek: !ping yazarsan çalışır)
+bot = commands.Bot(command_prefix="!", intents=discord.Intents.all())
+intents = discord.Intents.default()
+intents.message_content = True  # bunu açmazsan komutları okumaz
+intents.voice_states = True
+# Bot hazır olduğunda çalışır
+@bot.event
+async def on_ready():
+    print(f'✅ Bot giriş yaptı: {bot.user}')
+
+# Basit bir komut: !ping
+@bot.command()
+async def ping(ctx):
+    await ctx.send("🏓 Pong!")
+
+# Argüman alan komut: !selam ahmet
+@bot.command()
+async def selam(ctx, isim: str = "kullanıcı"):
+    await ctx.send(f"Merhaba {isim}! 👋")
+
+@bot.command()
+async def Selam_17_Tane_Sürdürülebilir_Kalkınma_Hedef_Hakkında_Ne_Düşünüyorsun(ctx):
+    await ctx.send("17 Sürdürülebilir Kalkınma Hedefi; yoksulluğu, açlığı, eşitsizliği bitirmek, eğitimi ve sağlığı herkes için erişilebilir kılmak, iklimi korumak gibi insanlığın en temel sorunlarına ortak çözüm sunan akıllı ve kapsamlı bir plandır. 2030 hedefi zor olsa da bugüne kadar yaratığı küresel bilinç çok değerli, vizyonu harika sadece uygulama hızı eksik.")
+
+
+# Hata yakalama (isteğe bağlı)
+@bot.event
+async def on_command_error(ctx, error):
+    await ctx.send(f"❌ Hata oluştu: {error}")
+
+#robot havalımı?(githubtan alınan hoca istediği için ödev)
+@bot.command()
+async def Havalı(ctx):
+    """Bu Robot Havalımı"""
+    await ctx.send("Evet Bu Robot Çok Havalı Admamım 😎")#burayı türkçeye çevirdim 
+
+@bot.command()
+async def müzik(ctx):
+    if not ctx.author.voice:
+        return await ctx.send("Önce ses kanalına gir kanka!")
+
+    vc = await ctx.author.voice.channel.connect()
+
+    # yt-dlp ile direkt YouTube'dan çalıyor (ffmpeg bile gerekmiyor)
+    vc.play(discord.FFmpegPCMAudio(
+        "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
+        before_options="-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5"
+    ))
+
+    await ctx.send("**NEVER GONNA GIVE YOU UP, NEVER GONNA LET YOU DOWN!** 🕺")
+
+    while vc.is_playing():
+        await asyncio.sleep(1)
+    await vc.disconnect()
+
+# Buraya Gemini API anahtarını yaz (ücretsiz alınıyor, aşağıda nasıl alınır yazdım)
+genai.configure(api_key="AIzaSyAWy3kv_opcbbJfEnfhcV-UAzY0gJDTb18")
+
+model = genai.GenerativeModel('gemini-2.5-flash') # bu da kesin çalışır  # en hızlısı
+
+
+@bot.command()
+async def ai(ctx, *, soru):
+    if not soru:
+        await ctx.send("Ne sorucan kanka? !ai napıyosun lan gibi")
+        return
+    
+    await ctx.send("🤔 Düşünüyorum kanka, 3 saniye...")
+    
+    try:
+        response = model.generate_content(soru)
+        cevap = response.text
+        if len(cevap) > 1900:
+            cevap = cevap[:1900] + "\n\n(...devamı uzun kanka)"
+        await ctx.send(f"{cevap}")
+    except Exception as e:
+        await ctx.send(f"**HATA DETAYI:** `{str(e)}`\nKey’in doğru mu, quota dolmuş mu bakalım kanka")
+
+#meme atma (hemde iki kere üst üste atmıyor havalı omg)
+meme_list = []
+current_index = 0
+
+@bot.command()
+async def mem(ctx):
+    global meme_list, current_index
+    
+    if not os.path.isdir("images"):
+        return await ctx.send("⚠️ images klasörü yok!")
+
+    files = [f for f in os.listdir("images") if f.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.webp'))]
+    
+    if not files:
+        return await ctx.send("⚠️ Klasörde mem yok kanka!")
+
+    # İlk kez çalışıyorsa veya liste bittiyse karıştır
+    if not meme_list:
+        meme_list = files.copy()
+        random.shuffle(meme_list)
+
+    # Şimdiki memeyi al
+    meme = meme_list.pop(0)  # listeden sil
+    await ctx.send(file=discord.File(f"images/{meme}"))
+
+bot.run("YOUR OWN DISCORD TOKEN")
